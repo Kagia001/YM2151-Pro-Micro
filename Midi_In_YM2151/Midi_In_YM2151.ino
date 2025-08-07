@@ -25,6 +25,7 @@
 
 
 #include  <MIDI.h>
+#include <USB-MIDI.h>
 #include  <Arduino.h>
 #include  <avr/pgmspace.h>
 #include  <Wire.h>
@@ -36,8 +37,9 @@
 #include "CCHandler.h"
 #include "EPROMManager.h"
 
-	MIDI_CREATE_INSTANCE(HardwareSerial, Serial,     MIDI); //Set Midi In to RX1 on Arduino
+	/* MIDI_CREATE_INSTANCE(HardwareSerial, Serial,     MIDI); //Set Midi In to RX1 on Arduino */
 //MIDI_CREATE_DEFAULT_INSTANCE();
+USBMIDI_CREATE_DEFAULT_INSTANCE();
 	
 
 	void setup() {

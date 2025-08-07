@@ -58,15 +58,15 @@ void	YM2151_Class::begin()
 }
 
 //
-#define		RD_HIGH		(PORTB = PORTB | 0x4)
-#define		RD_LOW		(PORTB = PORTB & ~0x4)
-#define		WR_HIGH		(PORTB = PORTB | 0x8)
-#define		WR_LOW		(PORTB = PORTB & ~0x8)
-#define		A0_HIGH		(PORTB = PORTB | 0x10)
-#define		A0_LOW		(PORTB = PORTB & ~0x10)
+#define		RD_HIGH		(PORTD = PORTD | (1<<7))
+#define		RD_LOW		(PORTD = PORTD & ~(1<<7))
+#define		WR_HIGH		(PORTD = PORTD | (1<<4))
+#define		WR_LOW		(PORTD = PORTD & ~(1<<4))
+#define		A0_HIGH		(PORTD = PORTD | (1<<0))
+#define		A0_LOW		(PORTD = PORTD & ~(1<<0))
 
-#define		BUS_READ	DDRD=0x02;DDRB=0x3c;
-#define		BUS_WRITE	DDRD=0xfe;DDRB=0x3f;
+#define		BUS_READ	DDRB = DDRB & 0xE1; DDRF = DDRF & 0x0F;
+#define		BUS_WRITE	DDRB = DDRB | ~(0xE1); DDRF = DDRF | ~(0x0F);
 
 #ifdef DIRECT_IO
 
@@ -79,21 +79,15 @@ static	uint8_t last_write_addr=0x00;
 void	YM2151_Class::write(uint8_t addr,uint8_t data)
 {
 	uint8_t i,wi;
-	volatile	uint8_t	*ddrD=&DDRD;
-	volatile	uint8_t	*ddrB=&DDRB;
-	volatile	uint8_t	*portD=&PORTD;
-	volatile	uint8_t	*portB=&PORTB;
-	
 	if(last_write_addr != 0x20){
-		*ddrD &= ~(_BV(2) | _BV(3) | _BV(4) | _BV(5) | _BV(6) | _BV(7));
-		*ddrB &= ~(_BV(0) | _BV(1));
+		BUS_READ;
 		wait(8);
 		A0_LOW;
 		wait(4);
 		for(i=0;i<32;i++){
 			RD_LOW;
 			wait(4);
-			if((*portB & _BV(1))==0){	// Read Status
+			if((PORTF & _BV(7))==0){	// Read Status
 				RD_HIGH;
 				wait(4);
 				break;
@@ -107,12 +101,11 @@ void	YM2151_Class::write(uint8_t addr,uint8_t data)
 	}
 	wait(4);
 	
-	*ddrD |= (_BV(2) | _BV(3) | _BV(4) | _BV(5) | _BV(6) | _BV(7));
-	*ddrB |= (_BV(0) | _BV(1));
+	BUS_WRITE;
 	wait(4);
 	A0_LOW;
-	*portD = (addr << 2) | (*portD & 0x03);
-	*portB = (addr >> 6) | (*portB & 0xfc);
+	PORTB = ((addr << 1) & 0x1E) | (PORTB & 0xE1);
+	PORTF = (addr & 0xF0) | (PORTF & 0x0F);
 	wait(4);
 	WR_LOW;		// Write Address
 	wait(4);
@@ -120,8 +113,8 @@ void	YM2151_Class::write(uint8_t addr,uint8_t data)
 	wait(2);
 	A0_HIGH;
 	wait(2);
-	*portD = (data << 2) | (*portD & 0x03);
-	*portB = (data >> 6) | (*portB & 0xfc);
+	PORTB = ((data << 1) & 0x1E) | (PORTB & 0xE1);
+	PORTF = (data & 0xF0) | (PORTF & 0x0F);
 	
 	wait(4);
 	WR_LOW;		// Write Data
@@ -134,19 +127,14 @@ void	YM2151_Class::write(uint8_t addr,uint8_t data)
 uint8_t	YM2151_Class::read()
 {
 	uint8_t i,wi,data;
-	volatile	uint8_t	*ddrD=&DDRD;
-	volatile	uint8_t	*ddrB=&DDRB;
-	volatile	uint8_t	*portD=&PORTD;
-	volatile	uint8_t	*portB=&PORTB;
-	*ddrD &= ~(_BV(2) | _BV(3) | _BV(4) | _BV(5) | _BV(6) | _BV(7));
-	*ddrB &= ~(_BV(0) | _BV(1));
+	BUS_READ;
 	A0_HIGH;
 	wait(4);
 	RD_LOW;		// Read Data
 	wait(4);
 	data = 0;
-	data |= (*portD)>>2;
-	data |= (*portB)<<6;
+	data |= (PORTB >> 1) & 0x0F;
+	data |= (PORTF) & 0xF0;
 	RD_HIGH;
 	wait(4);
 }
@@ -204,7 +192,7 @@ void YM2151_Class::setTone(uint8_t ch, uint8_t keycode, int16_t kf) {
 	int16_t	offset_kf = (kf & 0x3f);
 	int16_t	offset_note = keycode + (kf >> 6);
 	if (offset_note < 0) offset_note = 0;
-	if (offset_note > 0xbf) offset_note = 0xbf;
+	if (offset_note > 0x7f) offset_note = 0x7f;
 
 	YM2151.write(0x30 + ch, offset_kf << 2);
 	YM2151.write(0x28 + ch, pgm_read_byte_near(KeyCodeTable + offset_note));

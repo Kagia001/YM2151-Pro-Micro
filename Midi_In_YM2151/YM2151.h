@@ -41,19 +41,19 @@ class	YM2151_Class{
 		
 private:
 
-		static const uint8_t P_D0 = 2;
-		static const uint8_t P_D1 = 3;
-		static const uint8_t P_D2 = 4;
-		static const uint8_t P_D3 = 5;
-		static const uint8_t P_D4 = 6;
-		static const uint8_t P_D5 = 7;
-		static const uint8_t P_D6 = 8;
-		static const uint8_t P_D7 = 9;
+		static const uint8_t P_D0 = 15;
+		static const uint8_t P_D1 = 16;
+		static const uint8_t P_D2 = 14;
+		static const uint8_t P_D3 = 8;
+		static const uint8_t P_D4 = 21;
+		static const uint8_t P_D5 = 20;
+		static const uint8_t P_D6 = 19;
+		static const uint8_t P_D7 = 18;
 		
-		static const uint8_t P_RD = 10;
-		static const uint8_t P_WR = 11;
-		static const uint8_t P_A0 = 12;
-		static const uint8_t P_IC = 13;
+		static const uint8_t P_RD = 6;
+		static const uint8_t P_WR = 4;
+		static const uint8_t P_A0 = 3;
+		static const uint8_t P_IC = 2;
 		
 		void	wait(uint8_t loop);
 		void	delayNanoseconds(unsigned int loop);
