@@ -1,6 +1,7 @@
 
 	/**
 	*	YM2151 - Chip Controller Software for ARDUINO
+	* (C) 2025  Karl Ragnar Giese
 	*	(C) 2016  Marcel Weiß
 	*
 	*	This program is free software : you can redistribute it and / or modify
@@ -25,7 +26,7 @@
 
 
 #include  <MIDI.h>
-#include <USB-MIDI.h>
+#include  <USB-MIDI.h>
 #include  <Arduino.h>
 #include  <avr/pgmspace.h>
 #include  <Wire.h>

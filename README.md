@@ -1,10 +1,8 @@
-# YM2151-Arduino-Software
-Software for the ym2151-Shield for Arduino
+# YM2151-Pro-Micro
+Forked from https://github.com/masl123/YM2151-Arduino-Software/tree/master
 
+Software for a Pro Micro YM2151 controller
 
-This is a Firmware to control the YM2151 Shield shown at this Website: http://www.ooishoo.org/
-<br>You also can look at this Thread: http://chipmusic.org/forums/topic/17710/ym2151-shield-for-arduino/ for more informations about the Shield. 
-<br><br>
 This Firmware allows you to control the YM2151-Synthesizer Chip over Midi. This includes parameters to control the timbre of the instrument, but also to choose from either the polyphonic-mode, where notes are assigned automatically to the eight voices of the Chip or the monophonic-mode, where for each voice-channel the timbre and the notes can be controlled.
 
 
@@ -24,7 +22,10 @@ The notes and control change messages which are sent over midi are assigned to t
 
 ### Requirements:
 The Arduino Midi Library:
-	https://github.com/FortySevenEffects/arduino_midi_library
+https://github.com/FortySevenEffects/arduino_midi_library
+The Arduino USB-Midi Transport Library:
+https://github.com/lathoub/Arduino-USBMIDI
+
 
 <br>
 
