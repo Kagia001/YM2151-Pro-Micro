@@ -4,6 +4,7 @@
 The MIT License
 
 Copyright (c) 2025 Karl Ragnar Giese
+Copyright (c) 2025 Martin Giese
 Copyright (c) 2010 www.ooishoo.org
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -163,7 +164,14 @@ void	YM2151_Class::wait(uint8_t loop)
  */
 void	YM2151_Class::initLFO()
 {
-	write(0x1,0x1);
+	// Bit 0 is some undocumented test bit.  Wrong!
+	// write(0x1,0x1);
+
+	// We set and reset bit 1 instead:
+	write(0x1,0x2);
+	wait(4);
+	write(0x1,0x0);
+	wait(4);
 }
 
 
