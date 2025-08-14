@@ -199,14 +199,14 @@ void YM2151DriverClass::setCTRLout(uint8_t value) {
 
 
 void YM2151DriverClass::setPhaseDepth(uint8_t value) {
-	PhAmpMod = ((value)) | 0x80;
-	YM2151.write(0x19, PhAmpMod);
+	PhModDepth = value & 0x7F;
+	YM2151.write(0x19, PhModDepth | 0x80);
 }
 
 
 void YM2151DriverClass::setAmpDepth(uint8_t value) {
-	PhAmpMod = ((value)) & 0x7F;
-	YM2151.write(0x19, PhAmpMod);
+	AmpModDepth = value & 0x7F;
+	YM2151.write(0x19, AmpModDepth);
 }
 
 

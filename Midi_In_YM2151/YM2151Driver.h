@@ -50,7 +50,8 @@ class YM2151DriverClass
 	 //LFO
 	 uint8_t Noize;
 	 uint8_t LFOFreq;
-	 uint8_t PhAmpMod;
+	 uint8_t PhModDepth;
+	 uint8_t AmpModDepth;
 	 uint8_t CtrlOut_WF;
 
 	 uint8_t MasterTune = 63;
