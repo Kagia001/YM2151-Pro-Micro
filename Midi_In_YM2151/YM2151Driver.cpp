@@ -23,6 +23,12 @@
 #include "EPROMManager.h"
 #include <Arduino.h>
 
+// In my chips, the function of the AMD/PMD register seems to be the wrong way around
+// compared to the documentation.  Moreover, without at least a tiny bit of AM, the
+// PM will not take effect at all.  Define the following macro to patch this in the software.
+
+#define FIX_AM_PM_SWAP
+
 void YM2151DriverClass::init()
 {
 	for (byte i = 0; i < 8; i++) {
@@ -192,13 +198,28 @@ void YM2151DriverClass::setCTRLout(uint8_t value) {
 
 void YM2151DriverClass::setPhaseDepth(uint8_t value) {
 	PhModDepth = value & 0x7F;
-	YM2151.write(0x19, PhModDepth | 0x80);
+	#ifdef FIX_AM_PM_SWAP
+		YM2151.write(0x19, PhModDepth);
+	#else
+		YM2151.write(0x19, PhModDepth | 0x80);
+	#endif
 }
 
 
 void YM2151DriverClass::setAmpDepth(uint8_t value) {
 	AmpModDepth = value & 0x7F;
-	YM2151.write(0x19, AmpModDepth);
+	#ifdef FIX_AM_PM_SWAP
+		// In the chips that need the fix, PM won’t work if AM depth is 0.
+		// So we always set it to at least 1. To be entirely accurate,
+		// we could set the AM Sensitivity to 0 in this case, or all 
+		// AM sensitivity enable bits to 0.  On the other hand, an
+		// AM depth of 1 is 0.75db even at maximum sensitivity, which is
+		// below what most people will be able to hear.
+		if(AmpModDepth == 0) AmpModDepth = 1; 
+		YM2151.write(0x19, AmpModDepth | 0x80);
+	#else
+		YM2151.write(0x19, AmpModDepth);
+	#endif
 }
 
 
