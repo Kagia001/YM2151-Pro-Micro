@@ -19,16 +19,6 @@
 
 
 
-//TODO Use Most Significant Bits instead of LSBs for Values (Top part of byte instead of bottom part) e.g.
-//
-//	((value & 0xf) << 4       -->   ((value & 0x78) << 1)
-//	((value & 0x3) << 6)	  -->	((value & 0x60) << 1)
-//	(value & 0x0F)			  -->	((value & 0x78) >> 3)
-//
-// ... DONE, but needs Testing
-
-
-
 #include "YM2151Driver.h"
 #include "EPROMManager.h"
 #include <Arduino.h>
