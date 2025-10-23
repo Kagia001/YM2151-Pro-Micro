@@ -38,8 +38,7 @@
 #include "CCHandler.h"
 #include "EPROMManager.h"
 
-	/* MIDI_CREATE_INSTANCE(HardwareSerial, Serial,     MIDI); //Set Midi In to RX1 on Arduino */
-//MIDI_CREATE_DEFAULT_INSTANCE();
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDIDIN);  // Serial1 for 32u4
 USBMIDI_CREATE_DEFAULT_INSTANCE();
 	
 
@@ -49,6 +48,7 @@ USBMIDI_CREATE_DEFAULT_INSTANCE();
 		YM2151.begin();
 		YM2151.initLFO();
 		MIDI.begin(MIDI_CHANNEL_OMNI); 
+		MIDIDIN.begin(MIDI_CHANNEL_OMNI);
 		
 
 		//init
@@ -65,10 +65,17 @@ USBMIDI_CREATE_DEFAULT_INSTANCE();
 		MIDI.setHandleNoteOff(handle_NoteOff);
 		MIDI.setHandleProgramChange(handle_PC);
 		MIDI.setHandleControlChange(handle_CC);
+
+		MIDIDIN.setHandleSystemExclusive(handle_sysex);
+		MIDIDIN.setHandleNoteOn(handle_NoteOn);
+		MIDIDIN.setHandleNoteOff(handle_NoteOff);
+		MIDIDIN.setHandleProgramChange(handle_PC);
+		MIDIDIN.setHandleControlChange(handle_CC);
 	} 
 
 	void loop() {
 		MIDI.read();
+		MIDIDIN.read();
 	}
 
 	//SysEx:
