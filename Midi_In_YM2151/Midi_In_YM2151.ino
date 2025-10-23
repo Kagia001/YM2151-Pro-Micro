@@ -78,6 +78,66 @@ USBMIDI_CREATE_DEFAULT_INSTANCE();
 		MIDIDIN.read();
 	}
 
+  void loopLissasjous() {
+		YM2151DriverClass d = YM2151Driver;
+
+		NotePool.setMode(true); // Not Poly!
+		d.setAlgorithm(0, 0);
+		d.setAlgorithm(0, 1);
+		d.setOpActive(0, 0, 1<<6);
+		d.setOpActive(0, 1, 1<<6);
+		d.setOpActive(0, 2, 1<<6);
+		d.setOpActive(0, 3, 1<<6);
+		d.setOpActive(1, 0, 1<<6);
+		d.setOpActive(1, 1, 1<<6);
+		d.setOpActive(1, 2, 1<<6);
+		d.setOpActive(1, 3, 1<<6);
+
+		d.setTone(0, 69, 0);
+		d.setTone(1, 69, 2);
+		d.setPan(0,1*32);
+		d.setPan(1,3*32);
+		d.noteOn(0);
+		d.noteOn(1);
+
+		while (1) {
+			MIDI.read();
+			MIDIDIN.read();
+		}
+	}
+
+	void loopNervigerTon() {
+		YM2151DriverClass d = YM2151Driver;
+		d.setTone(0, 52, 0);
+		d.setLFOFreq(90);
+		d.setWaveForm(64);
+		d.setAlgorithm(0, 0<<4);
+		d.setOpActive(0, 0, 0<<6);
+		d.setOpActive(0, 1, 1<<6);
+		d.setOpActive(0, 2, 0<<6);
+		d.setOpActive(0, 3, 1<<6);
+
+		d.setOpVolume(0, 1, 32);
+		d.setDet1(0, 1, 1<<4);
+		d.setMul(0,  1, 0<<3);
+		d.setDet2(0, 1, 0<<5);
+		// d.setAMSenseEn(0, 0, 127);
+		// d.setAMSenseEn(0, 1, 1<<6);
+		// d.setAMSenseEn(0, 2, 127);
+		// d.setAMSenseEn(0, 3, 1<<6);
+
+		// d.setAMSense(0, 3<<5);
+		d.setPMSense(0, 127);
+		d.setAmpDepth(0);
+		d.setPhaseDepth(1);
+
+		d.noteOff(0);
+		d.noteOn(0);
+		while(1)
+		{
+		}
+	}
+
 	//SysEx:
 	void handle_sysex(uint8_t* a, unsigned sizeofsysex){
 		SysExHandler.handleSysEx(a, sizeofsysex);
