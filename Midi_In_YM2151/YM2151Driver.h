@@ -57,8 +57,14 @@ class YM2151DriverClass
 	 uint8_t MasterTune = 63;
 	 uint8_t MasterVolume[8];
 
+	// For velocity sensitivity.  Set before note on.
+	// This is in operator TL steps of 0.75 dB.
+	// Will be 0 or negative, to reduce the total volume.
+	uint8_t Velocity[8];
 
- public:
+	void writeOpVolumes(int8_t channel);
+
+public:
 	void init();
 	void setOpVolume(uint8_t channel, uint8_t op, uint8_t value);
 	void setMul(uint8_t channel, uint8_t op, uint8_t value);
@@ -85,6 +91,7 @@ class YM2151DriverClass
 	void setCTRLout(uint8_t value);
 	void setPhaseDepth(uint8_t value);
 	void setPan(uint8_t channel, uint8_t value);
+	void setVelocity(uint8_t channel, uint8_t value);
 	void noteOn(uint8_t channel);
 	void noteOff(uint8_t channel);
 	void setTone(uint8_t ch, uint8_t keycode, int16_t kf);

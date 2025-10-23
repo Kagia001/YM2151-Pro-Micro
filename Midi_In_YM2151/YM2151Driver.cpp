@@ -48,33 +48,55 @@ void YM2151DriverClass::init()
 	setMasterTune(EPROMManager.loadByte(0x00));
 }
 
-void YM2151DriverClass::setOpVolume(uint8_t channel, uint8_t op, uint8_t value){
-	uint8_t adr = getAdr(channel, op);
-	TotalLevel[adr] = (TotalLevel[adr] & 0x80) | (value & 0x7F);
+extern  PROGMEM const uint8_t outputOps[];
 
+// The right operator levels depend on
+// - the level defined by the patch
+// - the velocity
+// - aftertouch
+// - volume pedal
+// - master volume
+//
+// We’re not (yet) supporting afterouch, volume pedal etc. But we can actually
+// change the master volume while a note is playing.
+//
+// The following method is called before starting a note, and on a change of master
+// volume or operator levels.  It sets the levels of all 4 operators for the channel
+// according to the patch, the velocity, and the master volume.
+//
+// An important aspect is that only the "output operators" i.e. the ones that get
+// mixed into the final signal, rather than modulating something else, should get
+// adjusted.  The non-output operators influence the timbre and don’t get changed.
+
+void YM2151DriverClass::writeOpVolumes(int8_t channel) {
 	int16_t att, tl;
 	tl = map(MasterVolume[channel], 0, 127, 127, -127);
 
+	uint8_t algorithm = ChannelControl[channel] & 0x7;
+	uint8_t outputBits = pgm_read_byte_near(outputOps+algorithm);
+	for(uint8_t op=0;op<4; op++) {
+		uint8_t adr = getAdr(channel, op);
+		uint8_t isOutput =  outputBits & (1 << op);
 
-	//see setOpActive
-	if (op == 1) {
-		op = 2;
-	}
-	else if (op == 2) {
-		op = 1;
-	}
+		if (isOutput) {
+			att = TotalLevel[adr] + tl + Velocity[channel];
+		}
+		else {
+			att = TotalLevel[adr];
+		}
 
-	if (OpOn[channel] & (1 << op)) {
-		att = TotalLevel[adr] + tl;
-	}
-	else {
-		att = TotalLevel[adr];
-	}
+		att = constrain(att, 0, 0x7f);
 
-	att = constrain(att, 0, 0x7f);
-
-	YM2151.write(0x60 + adr, att);
+		YM2151.write(0x60 + adr, att);
+	}
 }
+
+void YM2151DriverClass::setOpVolume(uint8_t channel, uint8_t op, uint8_t value){
+	uint8_t adr = getAdr(channel, op);
+	TotalLevel[adr] = (TotalLevel[adr] & 0x80) | (value & 0x7F);
+	writeOpVolumes(channel);
+}
+
 
 void YM2151DriverClass::setMul(uint8_t channel, uint8_t op, uint8_t value){
 	uint8_t adr = getAdr(channel, op);
@@ -138,7 +160,7 @@ void YM2151DriverClass::setOpActive(uint8_t channel, uint8_t op, uint8_t value) 
 	//Switch the Values because the sequence (M1,M2,C1,C2) is Wrong in Register #0x08, but right for all other Registers
 	if (op == 1) {
 		op = 2;
-	}else if (op == 2) {
+	} else if (op == 2) {
 		op = 1;
 	}
 
@@ -242,11 +264,16 @@ void YM2151DriverClass::setPan(uint8_t channel, uint8_t value){
 	YM2151.write(0x20 + channel, ChannelControl[channel]);
 }
 
+extern PROGMEM const unsigned char velToLvl[];
 
-void YM2151DriverClass::noteOn(uint8_t channel){
-	YM2151.write(0x08, (OpOn[channel]<<3) | (channel & 0x7));
+void YM2151DriverClass::setVelocity(uint8_t channel, uint8_t value) {
+	Velocity[channel] = pgm_read_byte(velToLvl+value);
 }
 
+void YM2151DriverClass::noteOn(uint8_t channel){
+	writeOpVolumes(channel);
+	YM2151.write(0x08, (OpOn[channel]<<3) | (channel & 0x7));
+}
 
 void YM2151DriverClass::noteOff(uint8_t channel){
 	YM2151.write(0x08, 0x00 | (channel & 0x7));
@@ -266,13 +293,12 @@ void YM2151DriverClass::setMasterTune(uint8_t value)
 	this->MasterTune = value;
 }
 
+// The trick with the master volume is that it should only affect
+// ‘output ’operators, i.e. those that get mixed into the output.
+
 void YM2151DriverClass::setMasterVolume(uint8_t channel, uint8_t value) {
 	YM2151DriverClass::MasterVolume[channel] = value;
-	for (uint8_t i = 0; i < 4; i++) {
-		uint8_t adr = getAdr(channel, i);
-		setOpVolume(channel, i, YM2151DriverClass::TotalLevel[adr]);
-	}
-	
+	writeOpVolumes(channel);
 }
 
 extern  PROGMEM const unsigned char initPatch[];
@@ -324,14 +350,56 @@ uint8_t YM2151DriverClass::getAdr(uint8_t channel, uint8_t op){
 }
 
 
+// The operators that are mixed into the output for each algorithm
+// These will have there level changed by the total volume and velocity.
+
+PROGMEM const uint8_t outputOps[] =
+// Bit 3  2  1  0
+// Op  4  3  2  1
+//    C2 C1 M2 M1
+{
+	0b1000,
+	0b1000,
+	0b1000,
+	0b1000,
+  0b1100,
+	0b1110,
+	0b1110,
+  0b1111	
+};
+
+// Translate a MIDI velocity (linear, 0 quiet to 127 loud)
+// to an operator level (logarithmic, 0 loud to 127 quiet)
+//
+// The kinetic energy of a key press is quadratic in the velocity,
+// so the volume becomes 40*log_10(velocity/127) dB, starting from 0dB loudest.
+// Each operator level step corresponds to 0.75 dB.
+
+PROGMEM const unsigned char velToLvl[128] = {
+	127, 112, 96, 87, 80, 75, 71, 67,
+	64, 61, 59, 57, 55, 53, 51, 49,
+	48, 47, 45, 44, 43, 42, 41, 40,
+	39, 38, 37, 36, 35, 34, 33, 33,
+	32, 31, 31, 30, 29, 29, 28, 27,
+	27, 26, 26, 25, 25, 24, 24, 23,
+	23, 22, 22, 21, 21, 20, 20, 19,
+	19, 19, 18, 18, 17, 17, 17, 16,
+	16, 16, 15, 15, 14, 14, 14, 13,
+	13, 13, 13, 12, 12, 12, 11, 11,
+	11, 10, 10, 10, 10, 9, 9, 9,
+	8, 8, 8, 8, 7, 7, 7, 7,
+	6, 6, 6, 6, 6, 5, 5, 5,
+	5, 4, 4, 4, 4, 4, 3, 3,
+	3, 3, 3, 2, 2, 2, 2, 2,
+	1, 1, 1, 1, 1, 0, 0, 0
+};
 
 //Default Patch
 PROGMEM const unsigned char initPatch[] = {
 	0,   0,   0,   0,   0, //LFO
 	64,   0,   0 ,  0,   0,  64 ,  0, //CH
-	124 ,  0,   0,   32 ,  0 ,  0 ,  0,   8,   0,   0,   0, //OPs
+	124 ,  0,   0,   60 ,  0 ,  0 ,  0,   8,   0,   0,   0, //OPs
 };
-
 
 YM2151DriverClass YM2151Driver;
 
