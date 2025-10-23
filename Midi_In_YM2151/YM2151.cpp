@@ -1,3 +1,4 @@
+#include "Arduino.h"
 
 
 /*
@@ -102,7 +103,7 @@ void	YM2151_Class::write(uint8_t addr,uint8_t data)
 		}
 	}
 	wait(4);
-	
+
 	BUS_WRITE;
 	wait(4);
 	A0_LOW;
@@ -175,6 +176,10 @@ void	YM2151_Class::initLFO()
 }
 
 
+// 3bit octave, 4 bit note, OPM style.
+// 96 notes.
+// App manual claims 0x4a gives 440Hz with a 3.579545MHz clock.
+// 0x4a is entry 56 in the table
 
 PROGMEM const unsigned char KeyCodeTable[] = {
 	0x00, 0x01, 0x02, 0x04, 0x05, 0x06, 0x08, 0x09,
@@ -193,15 +198,22 @@ PROGMEM const unsigned char KeyCodeTable[] = {
 
 
 /*!
-\param ch
-\param keycode
-\param kf
+\param ch				0-7
+\param keycode	0-127 MIDI Key code.  69 is A4, 440 Hz.
+\param kf				signed, in 64ths of a semitone
 */
 void YM2151_Class::setTone(uint8_t ch, uint8_t keycode, int16_t kf) {
-	int16_t	offset_kf = (kf & 0x3f);
-	int16_t	offset_note = keycode + (kf >> 6);
-	if (offset_note < 0) offset_note = 0;
-	if (offset_note > 0x7f) offset_note = 0x7f;
+	int16_t	offset_kf = (kf & 0x3f);						// lower 6 bits, offset within one semitone, will be 0–63
+	int16_t	offset_note = keycode + (kf >> 6);	// arithmetic shift of signed kf, can raise or lower base note.
+	offset_note -= (69 - 56);									  // offset to get A4 right.
+
+	// Octaves up or down if out of range.
+	while (offset_note < 0) {
+		offset_note += 12;
+	}
+	while (offset_note > 95) {
+		offset_note -= 12;
+	}
 
 	YM2151.write(0x30 + ch, offset_kf << 2);
 	YM2151.write(0x28 + ch, pgm_read_byte_near(KeyCodeTable + offset_note));
