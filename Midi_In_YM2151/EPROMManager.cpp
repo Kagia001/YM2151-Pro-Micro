@@ -25,20 +25,16 @@ void EPROMManagerClass::init()
 {
 }
 
-uint8_t* EPROMManagerClass::load(uint16_t address, uint8_t length)
+uint8_t EPROMManagerClass::loadByte(uint16_t address)
 {
-	uint8_t* values = new uint8_t[length];
-	for (uint8_t i = 0; i < length; i++) {
-		values[i] = EEPROM.read(address + i);
-	}
-	return values;
+	// No, we are not allocating RAM here!!!
+	// uint8_t* values = new uint8_t[length];
+	return EEPROM.read(address);
 }
 
-void EPROMManagerClass::save(uint16_t address, uint8_t values[], uint8_t length)
+void EPROMManagerClass::saveByte(uint16_t address, uint8_t value)
 {
-	for (uint8_t i = 0; i < length; i++) {
-		EEPROM.write(address + i, values[i]);
-	}
+	EEPROM.write(address,value);
 }
 
 EPROMManagerClass EPROMManager;
