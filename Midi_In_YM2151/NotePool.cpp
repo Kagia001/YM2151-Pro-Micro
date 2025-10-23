@@ -1,3 +1,4 @@
+#include "Arduino.h"
 /**
 *	YM2151 - Chip Controller Software for ARDUINO
 *	(C) 2016  Marcel Weiß
@@ -22,9 +23,9 @@
 
 void NotePoolClass::init()
 {
-	NotePoolClass::notes = new uint8_t[8];
 	for (byte i = 0; i < 8; i++){
 		NotePoolClass::notes[i] = 0xFF;
+		NotePoolClass::statusTimestamp[i] = 0L;
 	}
 	NotePoolClass::resetNotes();
 	mode = false;
@@ -32,11 +33,11 @@ void NotePoolClass::init()
 
 
 void NotePoolClass::handleNote(bool on, uint8_t channel, uint8_t pitch, uint8_t velocity){
-	
-	if (NotePoolClass::mode){
+	if (NotePoolClass::mode){ // monophonic mode
 		if (on){	
 			NotePoolClass::notes[channel] = pitch;
 			YM2151Driver.setTone(channel, pitch, 0);
+			YM2151Driver.setVelocity(channel, velocity);
 			YM2151Driver.noteOff(channel);
 			YM2151Driver.noteOn(channel);
 		}
@@ -50,18 +51,14 @@ void NotePoolClass::handleNote(bool on, uint8_t channel, uint8_t pitch, uint8_t 
 		uint8_t ymChannel = 0xFF;
 		if (on){
 
-			
 			ymChannel = findNote(pitch);
-			if (ymChannel == 0xFF){
-
-				byte ch = getFreeChannel();
-				if (ch == 0xFF) {
-					long r = random(0, 7); //just use a random Channel
-					ch = (byte)r;
-				}
+			if (ymChannel == 0xFF){ // don’t start same note twice before stopping it
+				byte ch = getPreferredChannel();
 
 				notes[ch] = pitch;
+				statusTimestamp[ch] = millis();
 				YM2151Driver.setTone(ch, pitch, 0);
+			  YM2151Driver.setVelocity(ch, velocity);
 				YM2151Driver.noteOff(ch);
 				YM2151Driver.noteOn(ch);
 			}
@@ -70,6 +67,7 @@ void NotePoolClass::handleNote(bool on, uint8_t channel, uint8_t pitch, uint8_t 
 			ymChannel = findNote(pitch);
 			if (ymChannel != 0xFF){
 				notes[ymChannel] = 0xFF;
+				statusTimestamp[ymChannel] = millis();
 				YM2151Driver.noteOff(ymChannel);
 			}
 		}
@@ -108,13 +106,29 @@ uint8_t NotePoolClass::findNote(uint8_t note){
 	return 0xFF;
 }
 
-uint8_t NotePoolClass::getFreeChannel(){
-	for (uint8_t i = 0; i < 8; i++){
-		if (notes[i] == 0xFF){
-			return i;
+// Find a good channel for the next note.
+// Algorithm:
+// If there is an OFF channel
+//    take the one that has been off longest.
+//    It might still be producing sound based on release envelope
+// If all channels are currently ON
+//		take the one that has been on longest.
+//		meaning that all 7 other notes have been started after that one
+
+uint8_t NotePoolClass::getPreferredChannel(){
+	uint8_t prefChannel = 0;
+	bool prefChannelIsOff = (notes[0] == 0xFF);
+	unsigned long prefChannelTimestamp = statusTimestamp[0];
+
+	for (uint8_t i = 1; i < 8; i++){
+		// This channel is better if the status was changed earlier, or it is off and the current best is on.
+		if (statusTimestamp[i] < prefChannelTimestamp || (!prefChannelIsOff && notes[i]==0xFF)) {
+			prefChannel = i;
+			prefChannelTimestamp = statusTimestamp[i];
+			prefChannelIsOff = notes[i] == 0xFF;
 		}
 	}
-	return 0xFF;
+	return prefChannel;
 }
 
 

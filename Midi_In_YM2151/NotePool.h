@@ -34,13 +34,14 @@
 class NotePoolClass
 {
  private:
-		uint8_t* notes;
-		bool mode;
+		uint8_t notes[8];
+		unsigned long statusTimestamp[8];
 
+		bool mode;
 
 		void resetNotes();
 		uint8_t findNote(uint8_t note);
-		uint8_t getFreeChannel();
+		uint8_t getPreferredChannel();
 
  public: void init();
 		 void handleNote(bool on, uint8_t channel, uint8_t pitch, uint8_t velocity);
