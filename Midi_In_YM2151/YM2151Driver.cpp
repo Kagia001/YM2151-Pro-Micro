@@ -236,9 +236,8 @@ void YM2151DriverClass::setNoiseFreq(uint8_t value) {
 
 
 void YM2151DriverClass::setPan(uint8_t channel, uint8_t value){
-	
-	//rethink about that (first switches on left, then right, then both, BUT should be left,both,right or so)
-	byte pan[] = { 0x00, 0x01, 0x03, 0x02 };
+	// left -> both -> both -> right.
+	byte pan[] = { 0x01, 0x03, 0x03, 0x02 };
 	ChannelControl[channel] = (ChannelControl[channel] & 0x3F) | (pan[(value & 0x60) >> 5] << 6);
 	YM2151.write(0x20 + channel, ChannelControl[channel]);
 }
