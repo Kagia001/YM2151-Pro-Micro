@@ -2,6 +2,7 @@
 YM2151 - Chip Controller Software for ARDUINO
 ---------------------------------------------
 
+    (C) 2025  Martin Giese
 	(C) 2025  Karl Ragnar Giese
 	(C) 2016  Marcel Weiß
 	(C) 2016  Charles Hobbs
